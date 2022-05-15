@@ -5,8 +5,11 @@
 			<!-- 自定义标题栏 -->
 			<view class="slot-wrap" slot="right">
 				<!-- <u-icon name="scan" color="#2979ff" size="45" style="margin-right: 15rpx;"></u-icon> -->
-				<u-badge type="error" :count="message_list.length" size="mini" v-on:click="btn_message_list()"></u-badge>
-				<u-icon name="../../static/xiaoxi.png" size="45" v-on:click="btn_message_list()"></u-icon>
+				<view v-on:click="btn_message_list()">
+					<u-badge type="error" :count="message_list.length" size="mini"></u-badge>
+					<u-icon name="../../static/xiaoxi.png" size="45"></u-icon>
+				</view>
+
 			</view>
 		</u-navbar>
 		<view class="u-page">
@@ -31,8 +34,10 @@
 								<u-image shape="circle" width="70rpx" height="70rpx"
 									:src="(tx_url+item.accountBookAdmin.url)"></u-image>
 							</u-col>
-							<u-col span="2" text-align="center" v-for="(item_2,index_2) in item.users" style="margin-top: 10rpx;">
-								<u-image shape="circle" width="70rpx" height="70rpx" :src="(tx_url+item_2.url)"></u-image>
+							<u-col span="2" text-align="center" v-for="(item_2,index_2) in item.users"
+								style="margin-top: 10rpx;">
+								<u-image shape="circle" width="70rpx" height="70rpx" :src="(tx_url+item_2.url)">
+								</u-image>
 							</u-col>
 						</u-row>
 					</view>
@@ -41,7 +46,8 @@
 				<view class="" slot="foot">
 					<u-row gutter="5" justify="start">
 						<u-col span="2" text-align="center" style="margin-top: 10rpx;">
-							<u-button :disabled="user.uuid!=item.accountBookAdmin.uuid" size="mini" v-on:click="btn_set_account_book(item)">设置</u-button>
+							<u-button  size="mini"
+								v-on:click="btn_set_account_book(item)">设置</u-button>
 						</u-col>
 						<u-col span="2" text-align="center" style="margin-top: 10rpx;">
 							<u-button size="mini" v-on:click="btn_detail(item)">明细</u-button>
@@ -50,7 +56,8 @@
 							<u-button size="mini" v-on:click="btn_account_book(item)">报表</u-button>
 						</u-col>
 						<u-col span="2" text-align="center" style="margin-top: 10rpx;">
-							<u-button :disabled="user.uuid!=item.accountBookAdmin.uuid" v-on:click="btn_add_account_book_user(item.uuid)" size="mini">邀请</u-button>
+							<u-button 
+								v-on:click="btn_add_account_book_user(item)" size="mini">邀请</u-button>
 						</u-col>
 						<u-col span="4" text-align="center" style="margin-top: 10rpx;">
 							<view style="color: #00aaff;">
@@ -76,7 +83,7 @@
 	export default {
 		data() {
 			return {
-				message_list:[],
+				message_list: [],
 				user: {},
 				tx_url: this.$tx_url,
 				account_book_list: [],
@@ -162,10 +169,28 @@
 				this.$u.route('pages/index/detail/detail', item);
 			},
 			btn_add_account_book_user(item) {
-				let data = {
-					"id": item
+				let mzz = this
+				let from = {
+					'accountBookId': item.uuid,
+					'userId': mzz.user.uuid
 				}
-				this.$u.route('pages/index/add_account_book_user/add_account_book_user', data);
+				let data = {
+					"id": item.uuid
+				}
+				mzz.$request('account-book-user/getJurisdiction', from, 'POST').then(res => {
+					console.log(res)
+					if (item.accountBookAdmin.uuid == mzz.user.uuid || res) {
+						mzz.$u.route('pages/index/add_account_book_user/add_account_book_user', data);
+					} else {
+						mzz.$refs.uToast.show({
+							title: '没有权限',
+							type: 'error',
+						})
+					}
+				}).catch(error => {
+					mzz.$u.toast('系统错误');
+				})
+
 			}
 		}
 	}

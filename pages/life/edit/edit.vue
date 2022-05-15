@@ -8,7 +8,7 @@
 		<view class="u-page">
 			<u-input v-model="content" maxlength="2000" type="textarea" :border="true" height="500"
 				style="margin: 20rpx;" />
-			<u-upload :formData="fromdata" ref="uUpload" :action="action" :auto-upload="false" @ @on-change="uploaded">
+			<u-upload :max-size="1 * 1024 * 1024" :formData="fromdata" ref="uUpload" :action="action" :auto-upload="false" @ @on-change="uploaded">
 			</u-upload>
 			<u-button @click="submit">提交</u-button>
 			<u-toast ref="uToast" />

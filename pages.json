@@ -160,7 +160,16 @@
 			}
 
 		}
-	],
+	    ,{
+            "path" : "pages/index/get_detail/get_detail",
+            "style" :                                                                                    
+            {
+              "navigationStyle": "custom", // 隐藏系统导航栏
+              "navigationBarTextStyle": "white"
+            }
+            
+        }
+    ],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "uView",

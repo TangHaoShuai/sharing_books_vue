@@ -19,7 +19,7 @@
 				<view style="margin: 5rpx 10rpx;">
 					<u-button type="success" v-on:click="submit">确认</u-button>
 				</view>
-				<view style="margin: 5rpx 10rpx;">
+				<view style="margin: 5rpx 10rpx;" v-if="jurisdiction ||accountBookAdmin == user.uuid">
 					<u-button type="error" v-on:click="show = true">删除账本</u-button>
 				</view>
 			</view>
@@ -41,6 +41,8 @@
 	export default {
 		data() {
 			return {
+				accountBookAdmin: '',
+				jurisdiction: false,
 				show: false,
 				user: '',
 				account_book_id: '',
@@ -57,6 +59,7 @@
 		onShow() {
 			this.user = this.$t_data.get("user");
 			this.getAccount_book();
+			this.getJurisdiction();
 		},
 		onLoad(options) {
 			undefined
@@ -64,6 +67,18 @@
 
 		},
 		methods: {
+			getJurisdiction() {
+				let mzz = this
+				let from = {
+					'accountBookId': mzz.account_book_id,
+					'userId': mzz.user.uuid
+				}
+				mzz.$request('account-book-user/getJurisdiction', from, 'POST').then(res => {
+					mzz.jurisdiction = res
+				}).catch(error => {
+					mzz.$u.toast('系统错误');
+				})
+			},
 			btn_account_book_log() {
 				let mzz = this
 				let data = {
@@ -82,26 +97,46 @@
 				let data = {
 					uuid: mzz.account_book_id
 				}
-				mzz.$request('account-book/deleteAccountBook', data, 'POST').then(res => {
-					// 打印调用成功回调
-					if (res) {
-						mzz.$refs.uToast.show({
-							title: '删除成功',
-							type: 'success',
-							duration: 1000,
-							isTab: true,
-							url: '/pages/index/index'
+
+				let from = {
+					'accountBookId': mzz.account_book_id,
+					'userId': mzz.user.uuid
+				}
+				mzz.$request('account-book-user/getJurisdiction', from, 'POST').then(res => {
+					if (mzz.account_book.accountBookAdmin.uuid == mzz.user.uuid || res) {
+
+						mzz.$request('account-book/deleteAccountBook', data, 'POST').then(res => {
+							// 打印调用成功回调
+							if (res) {
+								mzz.$refs.uToast.show({
+									title: '删除成功',
+									type: 'success',
+									duration: 1000,
+									isTab: true,
+									url: '/pages/index/index'
+								})
+								mzz.getAccount_book();
+							} else {
+								mzz.$refs.uToast.show({
+									title: '删除失败',
+									type: 'error'
+								})
+							}
+						}).catch(error => {
+							mzz.$u.toast('系统错误');
 						})
-						mzz.getAccount_book();
+
 					} else {
 						mzz.$refs.uToast.show({
-							title: '删除失败',
-							type: 'error'
+							title: '没有权限修改',
+							type: 'error',
 						})
 					}
 				}).catch(error => {
 					mzz.$u.toast('系统错误');
 				})
+
+
 			},
 			//更新账本名字
 			submit() {
@@ -110,28 +145,50 @@
 					uuid: mzz.account_book_id,
 					name: mzz.account_name
 				}
-				mzz.$request('account-book/updateAccountBookName', data, 'POST').then(res => {
-					// 打印调用成功回调
-					if (res.state == '200') {
-						mzz.$refs.uToast.show({
-							title: '更新成功',
-							type: 'success'
+				let from = {
+					'accountBookId': mzz.account_book_id,
+					'userId': mzz.user.uuid
+				}
+
+				mzz.$request('account-book-user/getJurisdiction', from, 'POST').then(res => {
+					if (mzz.account_book.accountBookAdmin.uuid == mzz.user.uuid || res) {
+
+						mzz.$request('account-book/updateAccountBookName', data, 'POST').then(res => {
+							// 打印调用成功回调
+							if (res.state == '200') {
+								mzz.$refs.uToast.show({
+									title: '更新成功',
+									type: 'success'
+								})
+								let log = {
+									accountBookId: mzz.account_book_id,
+									message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
+										']更新了账本名为' + mzz
+										.account_name
+								}
+								mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
+									res => {})
+							} else {
+								mzz.$refs.uToast.show({
+									title: res.message,
+									type: 'error'
+								})
+							}
+						}).catch(error => {
+							mzz.$u.toast('系统错误');
 						})
-						let log = {
-							accountBookId: mzz.account_book_id,
-							message: '用户[' + mzz.user.phone + ':' + mzz.user.username + ']更新了账本名为' + mzz
-								.account_name
-						}
-						mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(res => {})
+
 					} else {
 						mzz.$refs.uToast.show({
-							title: res.message,
-							type: 'error'
+							title: '没有权限修改',
+							type: 'error',
 						})
 					}
 				}).catch(error => {
 					mzz.$u.toast('系统错误');
 				})
+
+
 			},
 			//获取账本集合
 			getAccount_book() {
@@ -143,6 +200,7 @@
 							if (res[i].uuid == mzz.account_book_id) {
 								mzz.account_book = res[i]
 								mzz.account_name = res[i].name
+								mzz.accountBookAdmin = res[i].accountBookAdmin.uuid
 								break
 							}
 						}
@@ -156,10 +214,32 @@
 			},
 			//跳转到成员管理界面
 			btn_del_account_book_user() {
-				let data = {
-					"id": this.account_book_id
+				let mzz = this
+				let from = {
+					'accountBookId': mzz.account_book_id,
+					'userId': mzz.user.uuid
 				}
-				this.$u.route('pages/index/del_account_book_user/del_account_book_user', data);
+
+				mzz.$request('account-book-user/getJurisdiction', from, 'POST').then(res => {
+					if (mzz.account_book.accountBookAdmin.uuid == mzz.user.uuid || res) {
+
+
+						let data = {
+							"id": mzz.account_book_id
+						}
+						mzz.$u.route('pages/index/del_account_book_user/del_account_book_user', data);
+
+					} else {
+						mzz.$refs.uToast.show({
+							title: '没有权限操作',
+							type: 'error',
+						})
+					}
+				}).catch(error => {
+					mzz.$u.toast('系统错误');
+				})
+
+
 			}
 		}
 	}

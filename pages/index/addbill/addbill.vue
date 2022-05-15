@@ -57,7 +57,7 @@
 						</view>
 					</u-col>
 					<u-col span="3" text-align="center">
-						<u-upload :max-count="1" ref="uUpload" @on-change="uploaded" :action="action"
+						<u-upload :max-size="1 * 1024 * 1024" :max-count="1" ref="uUpload" @on-change="uploaded" :action="action"
 							:auto-upload="false" :file-list="fileList" :form-data="from_data">
 						</u-upload>
 					</u-col>
@@ -91,6 +91,7 @@
 	export default {
 		data() {
 			return {
+				jurisdiction: false,
 				tag: 0,
 				from_data: {}, //上传图片携带参数
 				timestamp: 0, //时间戳
@@ -188,8 +189,26 @@
 		},
 		onShow() {
 			this.user = this.$t_data.get("user");
+			this.getJurisdiction();
 		},
 		methods: {
+			//获取权限
+			getJurisdiction() {
+				let mzz = this
+				let data = {
+					'accountBookId': mzz.account_book.uuid,
+					'userId': mzz.user.uuid
+				}
+				mzz.$request('account-book-user/getJurisdiction', data, 'POST').then(res => {
+					// 打印调用成功回调
+					console.log(res)
+					if (res) {
+						mzz.jurisdiction = res
+					}
+				}).catch(error => {
+					mzz.$u.toast('系统错误');
+				})
+			},
 			//上传完成的回调
 			uploaded(res, index, lists, name) {
 				let mzz = this
@@ -228,7 +247,7 @@
 					var tempAccountBookAdmin = ''
 					mzz.$request('account-book/getAccountBook', mzz.account_book, 'POST').then(res => {
 						tempAccountBookAdmin = String(res.accountBookAdmin)
-						if (String(res.accountBookAdmin) == String(mzz.user.uuid)) {
+						if (String(res.accountBookAdmin) == String(mzz.user.uuid) || mzz.jurisdiction) {
 							mzz.action = mzz.$url + 'bill/imgUpload', //设置上传地址
 								//添加账单
 								mzz.$request('bill/addBill', data, 'POST').then(res => {

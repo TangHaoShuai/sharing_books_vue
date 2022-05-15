@@ -123,7 +123,7 @@
 			<!-- end账单 -->
 			<!-- beg图片预览对话框 -->
 			<view>
-				<u-modal v-model="show_img" :show-title = "false" :mask-close-able="true" :show-confirm-button="false">
+				<u-modal v-model="show_img" :show-title="false" :mask-close-able="true" :show-confirm-button="false">
 					<view class="slot-content">
 						<!-- <rich-text :nodes="content"></rich-text> -->
 						<u-image width="100%" height="500rpx" :src="img_src"></u-image>
@@ -192,7 +192,7 @@
 		onShow() {
 			this.getBills()
 			this.getAccount_book()
-			this.getJurisdiction()
+			// this.getJurisdiction()
 		},
 		methods: {
 			getMaxImg(item) {
@@ -232,18 +232,29 @@
 			// 跳转到跟新账单界面
 			btn_updatedetail(item) {
 				let mzz = this
-				if (mzz.account_book.accountBookAdmin.uuid == mzz.user.uuid || mzz.jurisdiction) {
-					let data = {
-						'uuid': item.uuid
-					}
-					mzz.$u.route('pages/index/updatebill/updatebill', data);
-				} else {
-					mzz.$refs.uToast.show({
-						title: '没有权限修改',
-						type: 'error',
-					})
+				// let data = {
+				// 	'accountBookId': mzz.account_book.uuid,
+				// 	'userId': mzz.user.uuid
+				// }
+				let data = {
+					'uuid': item.uuid
 				}
-
+				mzz.$u.route('pages/index/updatebill/updatebill', data);
+				// mzz.$request('account-book-user/getJurisdiction', data, 'POST').then(res => {
+				// 	if (mzz.account_book.accountBookAdmin.uuid == mzz.user.uuid || res) {
+				// 		let data = {
+				// 			'uuid': item.uuid
+				// 		}
+				// 		mzz.$u.route('pages/index/updatebill/updatebill', data);
+				// 	} else {
+				// 		mzz.$refs.uToast.show({
+				// 			title: '没有权限修改',
+				// 			type: 'error',
+				// 		})
+				// 	}
+				// }).catch(error => {
+				// 	mzz.$u.toast('系统错误');
+				// })
 			},
 			//搜索按钮 模糊查询
 			search(value) {

@@ -1,6 +1,6 @@
 <template>
 	<view>
-		<u-navbar leftText="返回" title="更新账单数据" :safeAreaInsetTop="false" :background="background" :height="48">
+		<u-navbar leftText="返回" title="账目详细数据" :safeAreaInsetTop="false" :background="background" :height="48">
 
 		</u-navbar>
 		<!-- beg 所有内容的容器 -->
@@ -51,21 +51,24 @@
 			</view>
 			<view>
 				<u-row justify="">
-					<u-col span="8" text-align="center">
+					<u-col span="12" text-align="center">
 						<view>
 							<u-input class="input" :height="170" v-model="detail.message" type="textarea"
 								:border="true" />
 						</view>
 					</u-col>
-					<u-col span="3" text-align="center" :disabled="true">
+					<!-- <u-col span="3" text-align="center" >
 						<u-upload :max-count="1" ref="uUpload" @on-change="uploaded" :action="action"
 							@on-remove="onRemove" :auto-upload="false" :file-list="fileList" :form-data="from_data">
 						</u-upload>
-					</u-col>
+					</u-col> -->
 				</u-row>
 			</view>
+			<view style="margin: 50rpx;" v-if="detail.img">
+				<u-image mode="aspectFill" width="100%" height="500rpx" :src="bill_img_url+detail.img"></u-image>
+			</view>
 			<u-picker @confirm="time_selector" v-model="show_time" mode="time"></u-picker>
-			<view>
+			<view style="padding-bottom: 20rpx;">
 				<u-row justify="">
 					<u-col span="1">
 						<u-icon :size="50" name="calendar"></u-icon>
@@ -75,12 +78,12 @@
 					</u-col>
 				</u-row>
 			</view>
-			<view style="margin: 20rpx;margin-top: 80rpx;margin-bottom: 50rpx;">
-				<u-button type="error"  v-on:click="deletesubmit()">删除账目</u-button>
+			<!-- <view style="margin: 20rpx;margin-top: 80rpx;margin-bottom: 50rpx;">
+				<u-button type="error" v-on:click="deletesubmit()">删除账目</u-button>
 			</view>
 			<view style="margin: 20rpx;">
 				<u-button type="success" v-on:click="submit()">更新账目</u-button>
-			</view>
+			</view> -->
 			<view>
 				<u-toast ref="uToast" />
 			</view>
@@ -95,6 +98,7 @@
 	export default {
 		data() {
 			return {
+				bill_img_url: this.$bill_img_url,
 				from_data: {}, //上传图片携带参数
 				timestamp: 0, //时间戳
 				time: '2022年 04月 22日',
@@ -249,6 +253,19 @@
 				let mzz = this
 				mzz.$request('bill/deleteBill', mzz.detail, 'POST').then(res => {
 					if (res) {
+
+						let log = {
+							accountBookId: mzz.detail.accountBookId,
+							message: '用户[' + mzz.user.phone + ':' + mzz.user
+								.username +
+								']删除了账目[账单类型:' + mzz.detail.billType + '][金额:' +
+								mzz.detail.money +
+								'][消费类型:' + mzz.detail.walletType + '][备注:' + mzz.detail.message + ']'
+						}
+						mzz.$request('account-book-log/addAccountBookLog', log,
+							'POST').then(
+							res => {})
+
 						mzz.$refs.uToast.show({
 							title: '删除成功',
 							type: 'success',
@@ -304,12 +321,23 @@
 			},
 			submit() {
 				let mzz = this
-				if (mzz.detail.accoutBookId != '' && mzz.detail.accoutBookUser != '' && mzz.detail.billType &&
+				if (mzz.detail.accountBookId != '' && mzz.detail.accoutBookUser != '' && mzz.detail.billType &&
 					mzz.detail.consumeType != '' && mzz.detail.date != '' && mzz.detail.message != '' &&
 					mzz.detail.money != '' && mzz.detail.uuid != '' && mzz.detail.walletType != '') {
 					mzz.$request('bill/updateBill', mzz.detail, 'POST').then(res => {
-						// 打印调用成功回调
-						console.log(res)
+
+						let log = {
+							accountBookId: mzz.detail.accountBookId,
+							message: '用户[' + mzz.user.phone + ':' + mzz.user
+								.username +
+								']更新了账目[账单类型:' + mzz.detail.billType + '][金额:' +
+								mzz.detail.money +
+								'][消费类型:' + mzz.detail.walletType + '][备注:' + mzz.detail.message + ']'
+						}
+						mzz.$request('account-book-log/addAccountBookLog', log,
+							'POST').then(
+							res => {})
+
 						if (res.succeed == 200) {
 							let files = [];
 							files = mzz.$refs.uUpload.lists;
@@ -344,10 +372,10 @@
 				}
 			},
 			change(index) {
-				console.log(index)
-				let mzz = this
-				mzz.current = index
-				mzz.detail.consumeType = ''
+				// console.log(index)
+				// let mzz = this
+				// mzz.current = index
+				// mzz.detail.consumeType = ''
 			},
 			time_selector(e) {
 				let mzz = this

@@ -118,7 +118,7 @@
 							type: 'success'
 						})
 						let log = {
-							accountBookId:  mzz.account_book_id,
+							accountBookId: mzz.account_book_id,
 							message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
 								']设置用户[' + item.userName + ':' + item.userPhone +
 								']为管理员'
@@ -149,13 +149,31 @@
 							type: 'success'
 						})
 						let log = {
-							accountBookId:  mzz.account_book_id,
+							accountBookId: mzz.account_book_id,
 							message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
 								']删除用户[' + item.userName + ':' + item.userPhone +
 								']'
 						}
 						mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
 							res => {})
+
+						let inform = {
+							userA: mzz.user.uuid, //发送者ID
+							userB: item.userUuid, // 接收者ID
+							message: '', //消息内容 内容由后端生成
+							type: '删除成员', //消息类型
+							accountBookId: mzz.account_book_id, //对应的账本ID
+						}
+						mzz.$request('inform/addInform', inform, 'POST')
+							.then( //添加消息
+								res => {
+									if (res) {
+										console.log("消息提醒成功")
+									} else {
+										console.log("消息提醒失败")
+									}
+								})
+
 						mzz.getAccount_book_user();
 					} else {
 						mzz.$refs.uToast.show({
@@ -175,7 +193,16 @@
 				mzz.$request('account-book-user/getAccountBookUser', data, 'POST').then(res => {
 					// 打印调用成功回调
 					if (res) {
+						for (var i = 0; i < res.length; i++) {
+							// debugger
+							if (res[i].userId == mzz.user.uuid) {
+								res.splice(i, 1);
+								console.log(res)
+								break
+							}
+						}
 						mzz.users = res
+
 					}
 				}).catch(error => {
 					mzz.$u.toast('系统错误');

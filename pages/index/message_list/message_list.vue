@@ -112,7 +112,22 @@
 									v-on:click="deleteMessage(item)">确认</u-button>
 							</view>
 						</u-col>
-
+					</u-row>
+					
+					<u-row gutter="5" v-if="['删除成员'].includes(item.type)">
+						<u-col span="12">
+							<view style="margin-bottom: 30rpx;">
+								{{item.message}}
+							</view>
+						</u-col>
+					
+						<u-col span="12" text-align="center">
+							<view>
+								<u-button style="width: 100%;" type="success" size="medium"
+									v-on:click="deleteMessage(item)">确认</u-button>
+							</view>
+						</u-col>
+					
 					</u-row>
 
 					<u-row gutter="5" v-if="item.type == '审核通过' || item.type == '审核不通过' && item.billTemp!= null">
@@ -281,13 +296,15 @@
 				}
 
 				let data = ''
+				let log = ''
 				if (item.type == '邀请加入账本') {
+
 					inform.type = '邀请加入账本_通过'
 					data = {
 						accountBookId: item.accountBook.uuid, //账本ID
 						userId: item.userB.uuid //用户ID
 					}
-					let log = {
+					log = {
 						accountBookId: item.accountBook.uuid,
 						message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
 							']同意用户[' + item.userA.phone + ':' + item.userA.username +
@@ -295,159 +312,233 @@
 					}
 					mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
 						res => {})
+
 				} else if (item.type == '申请加入账本') {
+
 					inform.type = '申请加入账本_通过'
 					data = {
 						accountBookId: item.accountBook.uuid, //账本ID
 						userId: item.userA.uuid //用户ID
 					}
-					let log = {
+					log = {
 						accountBookId: item.accountBook.uuid,
 						message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
 							']同意用户[' + item.userA.phone + ':' + item.userA.username +
 							']申请加入账本'
 					}
-					mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
-						res => {})
+
+
 				} else {
+
 					return
 				}
-				mzz.$request('inform/addInform', inform, 'POST').then( //添加消息
+
+				mzz.$request('inform/getInformByUuid', {
+					uuid: item.uuid
+				}, 'POST').then( //添加消息
 					res => {
-						if (res) {
-							console.log("消息提醒成功")
+						if (res && res != null && res != "") {
+							console.log("没有被审核")
+
+
+							mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
+								res => {})
+
+							mzz.$request('inform/addInform', inform, 'POST').then( //添加消息
+								res => {
+									if (res) {
+										console.log("消息提醒成功")
+									} else {
+										console.log("消息提醒失败")
+									}
+								})
+							mzz.$request('account-book-user/addAccountBookUser', data, 'POST').then(res => {
+								if (res) {
+									mzz.$request('inform/deleteInform', item, 'POST').then(res => {
+										mzz.$refs.uToast.show({
+											title: '操作成功',
+											type: 'success',
+										})
+										this.getMessageList();
+									})
+								} else {
+									mzz.$refs.uToast.show({
+										title: '操作失败',
+										type: 'error'
+									})
+								}
+							}).catch(error => {
+								mzz.$u.toast('系统错误');
+							})
+
 						} else {
-							console.log("消息提醒失败")
-						}
-					})
-				mzz.$request('account-book-user/addAccountBookUser', data, 'POST').then(res => {
-					if (res) {
-						mzz.$request('inform/deleteInform', item, 'POST').then(res => {
 							mzz.$refs.uToast.show({
-								title: '操作成功',
-								type: 'success',
+								title: '审核失败，已经被其他管理员处理',
+								type: 'error'
 							})
 							this.getMessageList();
-						})
-					} else {
-						mzz.$refs.uToast.show({
-							title: '操作失败',
-							type: 'error'
-						})
-					}
-				}).catch(error => {
-					mzz.$u.toast('系统错误');
-				})
+							return
+						}
+					})
+
+
+
+
+
 			},
 
 			//同意账目审核
 			submit(item) {
 				let mzz = this
-
-				let inform = {
-					userA: item.userB.uuid, //发送者ID
-					userB: item.userA.uuid, // 接收者ID
-					message: '', //消息内容 内容由后端生成
-					type: '审核通过', //消息类型
-					billTempId: item.billTemp.uuid, // 临时账目ID
-					accountBookId: item.accountBook.uuid, //对应的账本ID
-				}
-				mzz.$request('inform/addInform', inform, 'POST').then( //添加消息
+				mzz.$request('inform/getInformByUuid', {
+					uuid: item.uuid
+				}, 'POST').then( //添加消息
 					res => {
-						if (res) {
-							console.log("消息提醒成功")
+						if (res && res != null && res != "") {
+							console.log("没有被审核")
+
+							let inform = {
+								userA: item.userB.uuid, //发送者ID
+								userB: item.userA.uuid, // 接收者ID
+								message: '', //消息内容 内容由后端生成
+								type: '审核通过', //消息类型
+								billTempId: item.billTemp.uuid, // 临时账目ID
+								accountBookId: item.accountBook.uuid, //对应的账本ID
+							}
+							mzz.$request('inform/addInform', inform, 'POST').then( //添加消息
+								res => {
+									if (res) {
+										console.log("消息提醒成功")
+									} else {
+										console.log("消息提醒失败")
+									}
+								})
+							let log = {
+								accountBookId: item.accountBook.uuid,
+								message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
+									']同意发布用户[' + item.userA.phone + ':' + item.userA.username +
+									']的待审核账目[账单类型:' + item.billTemp.billType + '][金额:' + item.billTemp
+									.money +
+									'][消费类型:' + item.billTemp.consumeType + '][备注:' + item.billTemp
+									.message + ']'
+							}
+							mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
+								res => {})
+							mzz.$request('inform/consent', item, 'POST').then(res => {
+								if (res) {
+									mzz.$refs.uToast.show({
+										title: '操作成功',
+										type: 'success',
+									})
+									this.getMessageList();
+								} else {
+									mzz.$refs.uToast.show({
+										title: '操作失败',
+										type: 'error'
+									})
+								}
+							}).catch(error => {
+								mzz.$u.toast('系统错误');
+							})
+
 						} else {
-							console.log("消息提醒失败")
+							mzz.$refs.uToast.show({
+								title: '审核失败，已经被其他管理员处理',
+								type: 'error'
+							})
+							this.getMessageList();
+							return
 						}
 					})
-				let log = {
-					accountBookId: item.accountBook.uuid,
-					message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
-						']同意发布用户[' + item.userA.phone + ':' + item.userA.username +
-						']的待审核账目[账单类型:' + item.billTemp.billType + '][金额:' + item.billTemp.money +
-						'][消费类型:' + item.billTemp.consumeType + '][备注:' + item.billTemp.message + ']'
-				}
-				mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
-					res => {})
-				mzz.$request('inform/consent', item, 'POST').then(res => {
-					if (res) {
-						mzz.$refs.uToast.show({
-							title: '操作成功',
-							type: 'success',
-						})
-						this.getMessageList();
-					} else {
-						mzz.$refs.uToast.show({
-							title: '操作失败',
-							type: 'error'
-						})
-					}
-				}).catch(error => {
-					mzz.$u.toast('系统错误');
-				})
+
+
+
+
+
 			},
 			//拒绝
 			refuse(item) {
 				let mzz = this
-				let billTempID = '';
-				if (item.billTemp != null) {
-					billTempID = item.billTemp.uuid
-				}
-				let inform = {
-					userA: item.userB.uuid, //发送者ID
-					userB: item.userA.uuid, // 接收者ID
-					message: '', //消息内容 内容由后端生成
-					type: '', //消息类型
-					billTempId: billTempID, // 临时账目ID
-					accountBookId: item.accountBook.uuid, //对应的账本ID
-				}
-				if (item.type == '邀请加入账本') {
-					inform.type = '邀请加入账本_拒绝'
-					let log = {
-						accountBookId: item.accountBook.uuid,
-						message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
-							']拒绝用户[' + item.userA.phone + ':' + item.userA.username +
-							']邀请加入账本'
-					}
-					mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
-						res => {})
-				} else if (item.type == '申请加入账本') {
-					inform.type = '申请加入账本_不通过'
-					let log = {
-						accountBookId: item.accountBook.uuid,
-						message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
-							']拒绝用户[' + item.userA.phone + ':' + item.userA.username +
-							']申请加入账本'
-					}
-					mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
-						res => {})
-				} else {
-					return
-				}
-				mzz.$request('inform/addInform', inform, 'POST').then( //添加消息
+				mzz.$request('inform/getInformByUuid', {
+					uuid: item.uuid
+				}, 'POST').then( //添加消息
 					res => {
-						if (res) {
-							console.log("消息提醒成功")
+						if (res && res != null && res != "") {
+							console.log("没有被审核")
+
+							let billTempID = '';
+							if (item.billTemp != null) {
+								billTempID = item.billTemp.uuid
+							}
+							let inform = {
+								userA: item.userB.uuid, //发送者ID
+								userB: item.userA.uuid, // 接收者ID
+								message: '', //消息内容 内容由后端生成
+								type: '', //消息类型
+								billTempId: billTempID, // 临时账目ID
+								accountBookId: item.accountBook.uuid, //对应的账本ID
+							}
+							if (item.type == '邀请加入账本') {
+								inform.type = '邀请加入账本_拒绝'
+								let log = {
+									accountBookId: item.accountBook.uuid,
+									message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
+										']拒绝用户[' + item.userA.phone + ':' + item.userA.username +
+										']邀请加入账本'
+								}
+								mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
+									res => {})
+							} else if (item.type == '申请加入账本') {
+								inform.type = '申请加入账本_不通过'
+								let log = {
+									accountBookId: item.accountBook.uuid,
+									message: '用户[' + mzz.user.phone + ':' + mzz.user.username +
+										']拒绝用户[' + item.userA.phone + ':' + item.userA.username +
+										']申请加入账本'
+								}
+								mzz.$request('account-book-log/addAccountBookLog', log, 'POST').then(
+									res => {})
+							} else {
+								return
+							}
+							mzz.$request('inform/addInform', inform, 'POST').then( //添加消息
+								res => {
+									if (res) {
+										console.log("消息提醒成功")
+									} else {
+										console.log("消息提醒失败")
+									}
+								})
+							mzz.$request('inform/deleteInform', item, 'POST').then(res => {
+								if (res) {
+									mzz.$refs.uToast.show({
+										title: '操作成功',
+										type: 'success',
+									})
+									this.getMessageList();
+								} else {
+									mzz.$refs.uToast.show({
+										title: '操作失败',
+										type: 'error'
+									})
+								}
+							}).catch(error => {
+								mzz.$u.toast('系统错误');
+							})
+
+
 						} else {
-							console.log("消息提醒失败")
+							mzz.$refs.uToast.show({
+								title: '拒绝失败，已经被其他管理员处理',
+								type: 'error'
+							})
+							this.getMessageList();
+							return
 						}
 					})
-				mzz.$request('inform/deleteInform', item, 'POST').then(res => {
-					if (res) {
-						mzz.$refs.uToast.show({
-							title: '操作成功',
-							type: 'success',
-						})
-						this.getMessageList();
-					} else {
-						mzz.$refs.uToast.show({
-							title: '操作失败',
-							type: 'error'
-						})
-					}
-				}).catch(error => {
-					mzz.$u.toast('系统错误');
-				})
+
+
+
 			},
 			// 获取消息数据
 			getMessageList() {
